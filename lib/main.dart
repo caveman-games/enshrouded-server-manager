@@ -29,6 +29,9 @@ class ServerConfigPage extends StatefulWidget {
 }
 
 class _ServerConfigPageState extends State<ServerConfigPage> {
+  // App Versie
+  static const String _currentAppVersion = "v1.1.0";
+
   Map<String, dynamic> _fullJsonData = {};
   Map<String, dynamic> _gameSettings = {};
   List<dynamic> _userGroups = [];
@@ -45,13 +48,102 @@ class _ServerConfigPageState extends State<ServerConfigPage> {
   Process? _serverProcess;
   bool _isRunning = false;
   bool _isUpdating = false;
-  String _consoleOutput = "Welcome to the Caveman Games Manager!\nSearching for server...\n";
+  bool _serverUpdateAvailable = false;
+  String _consoleOutput = "Welcome to the Caveman Games Manager ($_currentAppVersion)!\nSearching for server...\n";
 
   @override
   void initState() {
     super.initState();
     _initServerPath();
     _initSteamCmdPath(); 
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForManagerUpdate();
+    });
+  }
+
+  // --- AUTOMATISCHE GITHUB APP UPDATE CHECK (Aangepast naar dedicated repo) ---
+  Future<void> _checkForManagerUpdate() async {
+    try {
+      final client = HttpClient();
+      client.userAgent = "EnshroudedManagerApp";
+      // Hier URL aangepast naar enshrouded-server-manager
+      final request = await client.getUrl(Uri.parse('https://api.github.com/repos/caveman-games/enshrouded-server-manager/releases/latest'));
+      final response = await request.close();
+
+      if (response.statusCode == 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        final json = jsonDecode(responseBody);
+        final latestTag = json['tag_name'] ?? '';
+        final htmlUrl = json['html_url'] ?? 'https://github.com/caveman-games/enshrouded-server-manager/releases';
+
+        if (latestTag.isNotEmpty && latestTag != _currentAppVersion) {
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("Manager Update Available! 🎉"),
+              content: Text("A new version ($latestTag) of Enshrouded Manager is available!\n\nYou are currently running $_currentAppVersion."),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Later"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Process.run('cmd', ['/c', 'start', '', htmlUrl]);
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Download Update"),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("GitHub update check skipped/failed: $e");
+    }
+  }
+
+  Future<void> _checkServerUpdateStatus() async {
+    if (exePath == null) return;
+    try {
+      Directory serverDir = File(exePath!).parent;
+      File manifestFile = File('${serverDir.parent.path}\\appmanifest_2278520.acf');
+      if (!await manifestFile.exists()) {
+        manifestFile = File('${serverDir.path}\\steamapps\\appmanifest_2278520.acf');
+      }
+
+      String? localBuildId;
+      if (await manifestFile.exists()) {
+        String content = await manifestFile.readAsString();
+        RegExp regExp = RegExp(r'"buildid"\s+"(\d+)"');
+        Match? match = regExp.firstMatch(content);
+        if (match != null) {
+          localBuildId = match.group(1);
+        }
+      }
+
+      final client = HttpClient();
+      final request = await client.getUrl(Uri.parse('https://api.steamcmd.net/v1/info/2278520'));
+      final response = await request.close();
+
+      if (response.statusCode == 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        final json = jsonDecode(responseBody);
+        String? latestBuildId = json['data']?['2278520']?['depots']?['branches']?['public']?['buildid']?.toString();
+
+        if (localBuildId != null && latestBuildId != null && localBuildId != latestBuildId) {
+          setState(() {
+            _serverUpdateAvailable = true;
+            _consoleOutput += "📢 Notice: A new Enshrouded Server update (Build $latestBuildId) is available on Steam!\n";
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Server update check skipped: $e");
+    }
   }
 
   Future<String?> _findServerPath() async {
@@ -109,6 +201,7 @@ class _ServerConfigPageState extends State<ServerConfigPage> {
       jsonPath = path.replaceAll('enshrouded_server.exe', 'enshrouded_server.json');
     });
     _loadConfig();
+    _checkServerUpdateStatus();
   }
 
   Future<void> _pickServerManually() async {
@@ -258,6 +351,7 @@ class _ServerConfigPageState extends State<ServerConfigPage> {
       if (result.exitCode == 0) {
         setState(() {
           _consoleOutput += "Update completed successfully!\n";
+          _serverUpdateAvailable = false;
         });
       } else {
         setState(() {
@@ -636,6 +730,7 @@ class _ServerConfigPageState extends State<ServerConfigPage> {
                     Wrap(
                       spacing: 12,
                       runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         ElevatedButton.icon(
                           onPressed: (_isRunning || _isUpdating || !isConfigReady) ? null : _startServer,
@@ -652,6 +747,26 @@ class _ServerConfigPageState extends State<ServerConfigPage> {
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade800),
                           icon: const Icon(Icons.system_update), label: const Text('Update'),
                         ),
+                        if (_serverUpdateAvailable)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade900,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.orangeAccent),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.priority_high, size: 14, color: Colors.white),
+                                SizedBox(width: 4),
+                                Text(
+                                  "UPDATE AVAILABLE!",
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 16),

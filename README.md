@@ -15,13 +15,13 @@ A lightweight, user-friendly Windows desktop utility built with **Flutter** by *
 
 ## Key Features
 
+- **🆕 World Backup & Restore:** Instantly backup and restore your server's entire save state (`world0.ksd`), JSON configuration, and backup folders with a single click directly from the manager.
+- **🆕 Smart Settings Sync:** The manager automatically forces the "Custom" game preset whenever you tweak a slider, ensuring your changes actually apply in-game without manual intervention.
 - **Interactive UI Sliders:** Tweak enemy damage/health, player stats, survival mechanics, and resource multipliers using precise percentage steps.
 - **User Groups & Passwords:** Easily manage access roles (Admin, Friend, Guest, Visitor) and individual permissions.
-- **Smart Path Detection:** 
-  - **Automatic:** The app automatically scans standard Steam/SteamCMD installation paths (`C:\steamcmd\...` or `C:\Program Files (x86)\Steam\...`).
-  - **Manual:** If your server or SteamCMD is installed in a custom directory, simply use the built-in folder picker.
+- **Smart Path Detection:** Automatically scans standard Steam/SteamCMD paths, or use the built-in folder picker for custom installations.
 - **1-Click Server Updates:** Automatically download the latest Enshrouded server updates via SteamCMD directly from the manager interface.
-- **Live Console Output:** Start, stop, and update your server process directly from the app and monitor real-time server logs.
+- **Live Console Output:** Start, stop, and monitor real-time server logs directly from the app.
 
 ---
 
@@ -34,7 +34,7 @@ A lightweight, user-friendly Windows desktop utility built with **Flutter** by *
 5. If the server isn't found automatically, click **Select Server** and point it to your `enshrouded_server.exe`.
 6. **To enable auto-updates:** Click **Select SteamCMD** on the Basic tab and point it to your `steamcmd.exe`.
 7. Customize your settings across the tabs and hit **Save**.
-8. Use the **Start**, **Stop**, and **Update** buttons to manage your server!
+8. Use the **Start**, **Stop**, **Backup**, **Load World**, and **Update** buttons to manage your server!
 
 ---
 
